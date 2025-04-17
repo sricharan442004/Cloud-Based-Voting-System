@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College President Voting</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-center p-10">
+
+    <h1 class="text-3xl font-bold text-blue-600 mb-5">Welcome to College President Voting</h1>
+
+    <div class="max-w-md mx-auto bg-white p-5 rounded-lg shadow-md">
+        <p class="text-lg font-semibold">Vote for your favorite candidate:</p>
+
+        <div id="candidate-list" class="mt-4 space-y-3"></div>
+    </div>
+
+    <script>
+        async function loadCandidates() {
+            try {
+                let response = await fetch("/get_candidates");
+                let candidates = await response.json();
+                let candidateList = document.getElementById("candidate-list");
+                candidateList.innerHTML = "";
+
+                candidates.forEach(candidate => {
+                    let div = document.createElement("div");
+                    div.className = "flex items-center bg-gray-200 p-3 rounded-md";
+
+                    div.innerHTML = `
+                        <img src="${candidate.image}" alt="Candidate Image" class="w-12 h-12 rounded-full mr-3">
+                        <div class="text-left">
+                            <p class="text-lg font-semibold">${candidate.name}</p>
+                            <p class="text-sm text-gray-600">${candidate.reg_no}</p>
+                        </div>
+                        <button type="button" class="vote-btn bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 ml-auto"
+                            onclick="castVote(this, '${candidate.reg_no}')">
+                            Vote
+                        </button>
+                    `;
+                    candidateList.appendChild(div);
+                });
+            } catch (error) {
+                console.error("Error loading candidates:", error);
+            }
+        }
+
+        async function castVote(button, reg_no) {
+            try {
+                let response = await fetch("/vote", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ reg_no: reg_no })
+                });
+
+                let result = await response.json();
+                if (response.ok) {
+                    // Disable all vote buttons after one vote
+                    document.querySelectorAll(".vote-btn").forEach(btn => {
+                        btn.disabled = true;
+                        btn.classList.add("opacity-50", "cursor-not-allowed");
+                    });
+
+                    // Highlight the selected button
+                    button.classList.remove("bg-blue-500", "hover:bg-blue-700");
+                    button.classList.add("bg-green-500");
+                    button.innerText = "Voted";
+                } else {
+                    alert("Error: " + result.error);
+                }
+            } catch (error) {
+                alert("Error submitting vote: " + error);
+            }
+        }
+
+        window.onload = loadCandidates;
+    </script>
+
+</body>
+</html>
